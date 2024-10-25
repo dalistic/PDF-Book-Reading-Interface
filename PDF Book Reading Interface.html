@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Book Reading Interface</title>
+    <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a4a4a;
+            --bg-color: #181818;
+            --light-bg-color: #2e2e2e;
+            --text-color: #f0f0f0;
+            --light-text-color: #999;
+            --primary-text-color: #fff;
+            --border-radius: 10px;
+            --transition-speed: 0.3s;
+            --font-size: 16px;
+            --line-height: 1.6;
+            --font-family: 'Helvetica', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 20px;
+            transition: all var(--transition-speed);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            margin: auto;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .card {
+            background-color: var(--light-bg-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .text-display {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            background-color: #2e2e2e; /* Dark theme background */
+            color: var(--text-color);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+            font-size: var(--font-size);
+            line-height: var(--line-height);
+            font-family: var(--font-family);
+        }
+
+        .info-display {
+            text-align: right;
+            font-size: 14px;
+            color: var(--light-text-color);
+            margin-bottom: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .btn-group button,
+        .pagination button {
+            flex: 1;
+            padding: 10px;
+            margin: 0 5px;
+            border: none;
+            border-radius: var(--border-radius);
+            background-color: var(--primary-color);
+            color: #fff;
+            cursor: pointer;
+            transition: background var(--transition-speed);
+        }
+
+        .btn-group button:hover,
+        .pagination button:hover {
+            background-color: #333;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .pagination .first-page-button {
+            flex: none; /* Do not share equally */
+            margin: 0 10px;
+        }
+
+        .dropdown-container {
+            margin-bottom: 20px;
+            position: relative;
+            border: 1px solid #555; /* Border around dropdown button */
+            border-radius: var(--border-radius);
+        }
+
+        .dropdown-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2e2e2e; /* Dark theme background */
+            padding: 10px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background var(--transition-speed);
+            color: var(--text-color); /* Text color */
+        }
+
+        .dropdown-toggle:hover {
+            background: #3e3e3e; /* Hover color */
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #444; /* Dark theme dropdown menu background */
+            border: 1px solid #555;
+            border-radius: var(--border-radius);
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .dropdown-container.active .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px;
+            cursor: pointer;
+            color: var(--text-color); /* Text color */
+        }
+
+        .dropdown-item:hover {
+            background-color: #555; /* Hover effect */
+        }
+
+        .first-page-button {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background var(--transition-speed);
+            font-size: 16px;
+            display: block;
+            width: auto;  /* Auto size */
+        }
+
+        .first-page-button:hover {
+            background-color: #333;
+        }
+
+        .settings-panel {
+            display: none;
+            position: absolute;
+            background-color: var(--light-bg-color);
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            top: 60px;
+            right: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        .settings-panel.active {
+            display: block;
+        }
+
+        .book-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .chapter-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .paragraph {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body class="dark-theme">
+    <div class="container">
+        <div class="header">Text Reader</div>
+        <div class="card">
+            <label for="upload-document" id="upload-button" class="btn-group">Upload File</label>
+            <input type="file" id="upload-document" accept=".pdf,.txt" style="display:none;">
+
+            <div class="btn-group">
+                <button id="settings-btn">Settings</button>
+                <button id="read-text-btn">Read Aloud</button>
+            </div>
+
+            <div class="settings-panel" id="settings-panel">
+                <span class="close-settings" id="close-settings">&times;</span>
+                <h3>Settings</h3>
+                <div>
+                    <label for="font-family">Font Style:</label>
+                    <select id="font-family">
+                        <option value="'Helvetica', sans-serif">Helvetica</option>
+                        <option value="'Arial', sans-serif">Arial</option>
+                        <option value="'Courier New', Courier, monospace">Courier New</option>
+                        <option value="'Georgia', serif">Georgia</option>
+                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                        <option value="'Verdana', sans-serif">Verdana</option>
+                        <option value="'Tahoma', sans-serif">Tahoma</option>
+                        <option value="'Impact', sans-serif">Impact</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="font-size">Font Size:</label>
+                    <select id="font-size">
+                        <option value="16">Normal</option>
+                        <option value="18">Large</option>
+                        <option value="20">Extra Large</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="line-height">Line Spacing:</label>
+                    <select id="line-height">
+                        <option value="1.5">Normal</option>
+                        <option value="1.8">Wide</option>
+                        <option value="2">Extra Wide</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="speech-rate">Speech Rate:</label>
+                    <select id="speech-rate">
+                        <option value="1">Normal</option>
+                        <option value="1.5">Fast</option>
+                        <option value="0.8">Slow</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="voice-selection">Speech Language:</label>
+                    <select id="voice-selection">
+                        <option value="tr-TR">Turkish</option>
+                        <option value="en-US">English</option>
+                        <option value="de-DE">German</option>
+                        <option value="fr-FR">French</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="ru-RU">Russian</option>
+                        <option value="zh-CN">Chinese</option>
+                        <option value="ja-JP">Japanese</option>
+                        <option value="ar-SA">Arabic</option>
+                    </select>
+                </div>
+                <button id="fullscreen-btn">Full Screen</button>
+            </div>
+
+            <div class="dropdown-container" id="input-language">
+                <div class="dropdown-toggle">
+                    <span class="selected" data-value="auto">Input Language: Auto Detect</span>
+                    <ion-icon name="chevron-down-outline"></ion-icon>
+                </div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item" data-value="auto">Auto Detect</div>
+                    <div class="dropdown-item" data-value="tr">Turkish</div>
+                    <div class="dropdown-item" data-value="en">English</div>
+                    <div class="dropdown-item" data-value="fr">French</div>
+                    <div class="dropdown-item" data-value="de">German</div>
+                    <div class="dropdown-item" data-value="es">Spanish</div>
+                    <div class="dropdown-item" data-value="ru">Russian</div>
+                    <div class="dropdown-item" data-value="zh">Chinese</div>
+                    <div class="dropdown-item" data-value="ja">Japanese</div>
+                    <div class="dropdown-item" data-value="ar">Arabic</div>
+                </div>
+            </div>
+            <div class="dropdown-container" id="output-language">
+                <div class="dropdown-toggle">
+                    <span class="selected" data-value="en">Target Language: English</span>
+                    <ion-icon name="chevron-down-outline"></ion-icon>
+                </div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item" data-value="tr">Turkish</div>
+                    <div class="dropdown-item" data-value="en">English</div>
+                    <div class="dropdown-item" data-value="fr">French</div>
+                    <div class="dropdown-item" data-value="de">German</div>
+                    <div class="dropdown-item" data-value="es">Spanish</div>
+                    <div class="dropdown-item" data-value="ru">Russian</div>
+                    <div class="dropdown-item" data-value="zh">Chinese</div>
+                    <div class="dropdown-item" data-value="ja">Japanese</div>
+                    <div class="dropdown-item" data-value="ar">Arabic</div>
+                </div>
+            </div>
+            <div class="text-display" id="text-display">Text will be loaded here...</div>
+            <div class="chars" id="input-chars">0</div>
+            <div class="info-display" id="page-info">Page: 1 / 0</div>
+            <div class="btn-group">
+                <button id="translate-btn">Translate</button>
+                <button id="stop-translate-btn" style="display:none;">Stop</button>
+                <button id="original-language-btn" style="display:none;">Original Language</button>
+            </div>
+
+            <div class="pagination">
+                <button id="prev-page" disabled>Previous Page</button>
+                <button class="first-page-button" id="first-page-button"><<</button> <!-- Only << -->
+                <button id="next-page">Next Page</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const textDisplay = document.querySelector("#text-display");
+        const uploadDocument = document.querySelector("#upload-document");
+        const inputChars = document.querySelector("#input-chars");
+        const prevPageBtn = document.querySelector("#prev-page");
+        const nextPageBtn = document.querySelector("#next-page");
+        const translateButton = document.querySelector("#translate-btn");
+        const stopTranslateButton = document.querySelector("#stop-translate-btn");
+        const originalLanguageButton = document.querySelector("#original-language-btn");
+        const inputLanguageDropdown = document.querySelector("#input-language");
+        const outputLanguageDropdown = document.querySelector("#output-language");
+        const selectedInputLanguageSpan = inputLanguageDropdown.querySelector(".selected");
+        const selectedOutputLanguageSpan = outputLanguageDropdown.querySelector(".selected");
+        const settingsPanel = document.querySelector("#settings-panel");
+        const settingsBtn = document.querySelector("#settings-btn");
+        const pageInfo = document.querySelector("#page-info");
+        const readTextButton = document.getElementById("read-text-btn");
+
+        let currentPage = 0;
+        let pages = [];
+        let autoTranslateEnabled = false;
+        let isReading = false;
+        let utterance;
+
+        async function extractTextFromPDF(file) {
+            const pdf = await pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(" ");
+                fullText += pageText + "\n";
+            }
+            return fullText;
+        }
+
+        function splitTextIntoPages(text, charLimit) {
+            let result = [];
+            for (let i = 0; i < text.length; i += charLimit) {
+                result.push(text.slice(i, i + charLimit));
+            }
+            return result;
+        }
+
+        function formatText(text) {
+            // Automatically detect headings and paragraphs and format them
+            const lines = text.split('\n');
+            let formattedText = '';
+
+            lines.forEach(line => {
+                if (line.trim().length === 0) {
+                    return;
+                }
+
+                if (line.trim().match(/^[A-Z\s]+$/)) {
+                    formattedText += `<div class="chapter-title">${line.trim()}</div>`;
+                } else {
+                    formattedText += `<div class="paragraph">${line.trim()}</div>`;
+                }
+            });
+
+            return formattedText;
+        }
+
+        function updatePageContent() {
+            const formattedText = formatText(pages[currentPage] || "Text will be loaded here...");
+            textDisplay.innerHTML = formattedText;
+            inputChars.textContent = textDisplay.textContent.length;
+            pageInfo.textContent = `Page: ${currentPage + 1} / ${pages.length}`;
+            prevPageBtn.disabled = currentPage === 0;
+            nextPageBtn.disabled = currentPage === pages.length - 1;
+            
+            // Scroll to the top of the page.
+            textDisplay.scrollTop = 0; // Scroll text area to the top
+            if (autoTranslateEnabled) {
+                translate();
+            }
+        }
+
+        function translate() {
+            const inputText = textDisplay.textContent;
+            const inputLanguage = selectedInputLanguageSpan.dataset.value;
+            const outputLanguage = selectedOutputLanguageSpan.dataset.value;
+
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${inputLanguage}&tl=${outputLanguage}&dt=t&q=${encodeURI(inputText)}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(json => {
+                    textDisplay.textContent = json[0].map(item => item[0]).join("");
+                })
+                .catch(error => console.error(error));
+        }
+
+        uploadDocument.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.type === "application/pdf") {
+                    try {
+                        const pdfText = await extractTextFromPDF(file);
+                        pages = splitTextIntoPages(pdfText, 1800);
+                        currentPage = 0;
+                        updatePageContent();
+                    } catch (error) {
+                        console.error("Failed to extract text from PDF:", error);
+                    }
+                } else if (file.type === "text/plain") {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        pages = splitTextIntoPages(reader.result, 1800);
+                        currentPage = 0;
+                        updatePageContent();
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert("Invalid file format.");
+                }
+            }
+        });
+
+        nextPageBtn.addEventListener("click", () => {
+            if (currentPage < pages.length - 1) {
+                currentPage++;
+                updatePageContent();
+                if (isReading) {
+                    readText();
+                }
+            }
+        });
+
+        prevPageBtn.addEventListener("click", () => {
+            if (currentPage > 0) {
+                currentPage--;
+                updatePageContent();
+                if (isReading) {
+                    readText();
+                }
+            }
+        });
+
+        inputLanguageDropdown.querySelector('.dropdown-toggle').addEventListener("click", () => {
+            inputLanguageDropdown.classList.toggle("active");
+        });
+
+        outputLanguageDropdown.querySelector('.dropdown-toggle').addEventListener("click", () => {
+            outputLanguageDropdown.classList.toggle("active");
+        });
+
+        inputLanguageDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                selectedInputLanguageSpan.innerText = e.target.innerText;
+                selectedInputLanguageSpan.dataset.value = e.target.dataset.value;
+                inputLanguageDropdown.classList.remove("active");
+                autoTranslateEnabled = true;
+                translate();
+            });
+        });
+
+        outputLanguageDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                selectedOutputLanguageSpan.innerText = e.target.innerText;
+                selectedOutputLanguageSpan.dataset.value = e.target.dataset.value;
+                outputLanguageDropdown.classList.remove("active");
+                updateReadTextButton();
+            });
+        });
+
+        function updateReadTextButton() {
+            const selectedVoice = document.getElementById("voice-selection").value;
+            const voiceLanguage = getVoiceLanguage(selectedVoice);
+            readTextButton.textContent = `${voiceLanguage} Speech`;
+        }
+
+        function getVoiceLanguage(lang) {
+            switch (lang) {
+                case 'tr-TR':
+                    return 'Turkish';
+                case 'en-US':
+                    return 'English';
+                case 'de-DE':
+                    return 'German';
+                case 'fr-FR':
+                    return 'French';
+                case 'es-ES':
+                    return 'Spanish';
+                case 'ru-RU':
+                    return 'Russian';
+                case 'zh-CN':
+                    return 'Chinese';
+                case 'ja-JP':
+                    return 'Japanese';
+                case 'ar-SA':
+                    return 'Arabic';
+                default:
+                    return 'Unknown';
+            }
+        }
+
+        translateButton.addEventListener("click", () => {
+            translate();
+            autoTranslateEnabled = true;
+            translateButton.style.display = "none";
+            stopTranslateButton.style.display = "inline-block";
+            originalLanguageButton.style.display = "inline-block";
+        });
+
+        stopTranslateButton.addEventListener("click", () => {
+            autoTranslateEnabled = false;
+            stopTranslateButton.style.display = "none";
+            translateButton.style.display = "inline-block";
+            originalLanguageButton.style.display = "none";
+        });
+
+        originalLanguageButton.addEventListener("click", () => {
+            textDisplay.textContent = pages[currentPage] || "Text will be loaded here...";
+            inputChars.textContent = textDisplay.textContent.length;
+        });
+
+        settingsBtn.addEventListener("click", () => {
+            settingsPanel.classList.toggle("active");
+        });
+
+        document.getElementById("close-settings").addEventListener("click", () => {
+            settingsPanel.classList.remove("active");
+        });
+
+        document.getElementById("font-family").addEventListener("change", (e) => {
+            const selectedFont = e.target.value;
+            document.documentElement.style.setProperty('--font-family', selectedFont);
+        });
+
+        document.querySelector("#font-size").addEventListener("change", (e) => {
+            const selectedSize = e.target.value;
+            document.documentElement.style.setProperty('--font-size', selectedSize + 'px');
+        });
+
+        document.querySelector("#line-height").addEventListener("change", (e) => {
+            const selectedHeight = e.target.value;
+            document.documentElement.style.setProperty('--line-height', selectedHeight);
+        });
+
+        readTextButton.addEventListener("click", () => {
+            const selectedVoice = document.getElementById("voice-selection").value;
+            if (isReading) {
+                speechSynthesis.cancel();
+                isReading = false;
+                readTextButton.textContent = "Read Aloud";
+            } else {
+                utterance = new SpeechSynthesisUtterance(textDisplay.textContent);
+                utterance.lang = selectedVoice;
+                utterance.rate = document.getElementById("speech-rate").value;
+
+                speechSynthesis.speak(utterance);
+                readTextButton.textContent = `${getVoiceLanguage(selectedVoice)} Speech`;
+                isReading = true;
+
+                utterance.onend = () => {
+                    isReading = false; 
+                    readTextButton.textContent = "Read Aloud";
+                };
+            }
+        });
+
+        document.getElementById("fullscreen-btn").addEventListener("click", () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        document.getElementById("first-page-button").addEventListener("click", () => {
+            currentPage = 0;
+            updatePageContent();
+        });
+    </script>
+</body>
+
+</html>
